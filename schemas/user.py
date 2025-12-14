@@ -1,7 +1,9 @@
-# schemas/user.py
-from pydantic import BaseModel
+UserSchema = {
+    "type": "object",
+    "properties": {
+        "id": {"type": "integer"},
+        "name": {"type": "string"}
+    },
+    "required": ["id", "name"]
+}
 
-
-class UserSchema(BaseModel):
-    id: int
-    name: str

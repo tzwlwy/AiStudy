@@ -2,9 +2,10 @@
 from cases.prompt_cases import PROMPT_CASES
 from llm.client import DeepSeekLLMClient,OpenAILLMClient
 from runner.prompt_runner import PromptRunner
-from report.reporter import Reporter
+from core.result import RunResult
 from evaluator.schema_validator import SchemaValidator
 from prompts.prompt_builder import PromptBuilder
+from schemas.user import UserSchema
 
 
 def main():
@@ -20,19 +21,15 @@ def main():
     validator = SchemaValidator()
     prompt_builder = PromptBuilder()
 
-    reporter = Reporter()
+    # reporter = RunResult()
     runner = PromptRunner(
         llm_client=llm,
         validator=validator,
         prompt_builder=prompt_builder,
-        reporter=reporter
+        # reporter=reporter
     )
-    for case in PROMPT_CASES:
-        result = runner.run(
-            user_input=case["input"],
-            schema=case["schema"]
-        )
-        print(f"[{case['task']}] result:", result)
+    result = runner.run("生成一个用户", UserSchema)
+    print(result)
 
 
 if __name__ == "__main__":

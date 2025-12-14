@@ -1,7 +1,17 @@
-from .json_validator import validate_json_with_schema
+import json
+from jsonschema import validate, ValidationError
 
 
 class SchemaValidator:
-    def validate(self, raw_output, schema):
-        # 现在只有 json，一点都不复杂
-        return validate_json_with_schema(raw_output, schema)
+    def validate(self, raw_output: str, schema: dict):
+        try:
+            data = json.loads(raw_output)
+        except Exception:
+            raise ValueError("Invalid JSON")
+
+        try:
+            validate(instance=data, schema=schema)
+        except ValidationError as e:
+            raise ValueError(f"Schema error: {e.message}")
+
+        return data

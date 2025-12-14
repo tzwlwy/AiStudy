@@ -1,0 +1,25 @@
+# 依赖 & 构建产物
+node_modules/
+dist/
+build/
+*.log
+*.tmp
+*.temp
+
+# 环境/密钥
+.env
+.env.local
+*.key
+*.pem
+
+# IDE 配置
+.vscode/
+.idea/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
+
+# OS 自动生成
+*.DS_Store
+desktop.ini

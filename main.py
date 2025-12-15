@@ -1,42 +1,67 @@
-# main.py
-from cases.prompt_cases import PROMPT_CASES
-from llm.client import DeepSeekLLMClient,OpenAILLMClient
-from runner.prompt_runner import PromptRunner
-from report.reporter import Reporter
-from evaluator.schema_validator import SchemaValidator
-from prompts.prompt_builder import PromptBuilder
+from openai import OpenAI
+
+from llm.client import LLMClient
+from planner.planner import Planner
+from executor.executor import Executor
+from dispatcher.dispatcher import Dispatcher
+from tools.search import search
+
+# DeepSeekLLM = DeepSeekLLMClient(
+#     api_key="sk-a999cb8c34f54262aee03239cba7c826",
+#     model="deepseek-chat"
+# )
+#
+# # ====== 初始化 ======
+# llm = LLMClient(
+#     client=DeepSeekLLM,  # ← 你自己的
+#     model="deepseek-chat"
+# )
+
+client = OpenAI(
+    api_key="sk-a999cb8c34f54262aee03239cba7c826",
+    base_url="https://api.deepseek.com/v1"
+)
+
+llm = LLMClient(
+    client=client,
+    model="deepseek-chat"   # ✅ model 在你自己的 LLMClient 里
+)
 
 
-def main():
-    # llm = OpenAILLMClient(
-    #     api_key="YOUR_API_KEY",
-    #     model="gpt-4o-mini"
-    # )
+planner = Planner()
+executor = Executor(llm)
 
-    llm = DeepSeekLLMClient(
-            api_key="sk-a999cb8c34f54262aee03239cba7c826",
-            model="deepseek-chat"
-        )
-    validator = SchemaValidator()
-    prompt_builder = PromptBuilder()
+dispatcher = Dispatcher({
+    "search": search
+})
 
-    reporter = Reporter()
-    runner = PromptRunner(
-        llm_client=llm,
-        validator=validator,
-        prompt_builder=prompt_builder,
-        reporter=reporter
-    )
-    for case in PROMPT_CASES:
-        result = runner.run(
-            user_input=case["input"],
-            schema=case["schema"]
-        )
-        print(f"[{case['task']}] result:", result)
+# ====== 运行 ======
+user_input = "帮我搜索 LangGraph 是什么"
 
+plan = planner.plan(
+    user_input=user_input,
+    tools=[
+        {
+            "type": "function",
+            "function": {
+                "name": "search",
+                "description": "搜索信息",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"}
+                    },
+                    "required": ["query"]
+                }
+            }
+        }
+    ]
+)
 
-if __name__ == "__main__":
-    main()
+exec_result = executor.run(plan)
 
-
-
+if exec_result.status == "tool_called":
+    tool_results = dispatcher.dispatch(exec_result.tool_calls)
+    print(tool_results)
+else:
+    print(exec_result)

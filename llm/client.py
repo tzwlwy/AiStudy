@@ -1,13 +1,17 @@
-class LLMClient:
-    def __init__(self, client, model):
-        self.client = client
-        self.model = model
+from openai import OpenAI
+from config.settings import *
 
-    def chat(self, messages, tools=None, tool_choice="auto"):
-        print(messages)
-        return self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice
+class LLMClient:
+    def __init__(self):
+        self.client = OpenAI(
+            api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_BASE_URL
         )
+
+    def chat(self, messages, temperature=0):
+        resp = self.client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            temperature=temperature
+        )
+        return resp.choices[0].message.content

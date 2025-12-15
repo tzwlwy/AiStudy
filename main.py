@@ -1,67 +1,32 @@
-from openai import OpenAI
-
-from llm.client import LLMClient
-from planner.planner import Planner
-from executor.executor import Executor
+from planner.planner import DAGPlanner
 from dispatcher.dispatcher import Dispatcher
-from tools.search import search
+from executor.executor import Executor
+from memory.state import AgentState
+from judge.judge import GoalJudge
 
-# DeepSeekLLM = DeepSeekLLMClient(
-#     api_key="sk-a999cb8c34f54262aee03239cba7c826",
-#     model="deepseek-chat"
-# )
-#
-# # ====== 初始化 ======
-# llm = LLMClient(
-#     client=DeepSeekLLM,  # ← 你自己的
-#     model="deepseek-chat"
-# )
+def main():
+    goal = input("请输入目标：")
 
-client = OpenAI(
-    api_key="sk-a999cb8c34f54262aee03239cba7c826",
-    base_url="https://api.deepseek.com/v1"
-)
+    planner = DAGPlanner()
+    dispatcher = Dispatcher()
+    executor = Executor()
+    memory = AgentState()
+    judge = GoalJudge()
 
-llm = LLMClient(
-    client=client,
-    model="deepseek-chat"   # ✅ model 在你自己的 LLMClient 里
-)
+    plan = planner.plan(goal)
 
+    while True:
+        runnable = dispatcher.get_runnable_nodes(plan)
+        if not runnable:
+            break
 
-planner = Planner()
-executor = Executor(llm)
+        for node in runnable:
+            executor.run_node(node)
+            memory.record(node)
 
-dispatcher = Dispatcher({
-    "search": search
-})
+    done = judge.is_done(goal, memory)
+    print("目标是否完成：", done)
+    print(memory.history)
 
-# ====== 运行 ======
-user_input = "帮我搜索 LangGraph 是什么"
-
-plan = planner.plan(
-    user_input=user_input,
-    tools=[
-        {
-            "type": "function",
-            "function": {
-                "name": "search",
-                "description": "搜索信息",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string"}
-                    },
-                    "required": ["query"]
-                }
-            }
-        }
-    ]
-)
-
-exec_result = executor.run(plan)
-
-if exec_result.status == "tool_called":
-    tool_results = dispatcher.dispatch(exec_result.tool_calls)
-    print(tool_results)
-else:
-    print(exec_result)
+if __name__ == "__main__":
+    main()

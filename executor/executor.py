@@ -1,31 +1,21 @@
-from types import SimpleNamespace
+from llm.client import LLMClient
 
 class Executor:
-    def __init__(self, llm_client):
-        self.llm = llm_client
+    def __init__(self, max_retry=2):
+        self.llm = LLMClient()
+        self.max_retry = max_retry
 
-    def run(self, plan):
-        if plan.missing_args:
-            return SimpleNamespace(
-                status="need_more_info",
-                missing_args=plan.missing_args
-            )
-
-        resp = self.llm.chat(
-            messages=plan.messages,
-            tools=plan.tools,
-            tool_choice=plan.tool_choice
-        )
-
-        message = resp.choices[0].message
-
-        if not message.tool_calls:
-            return SimpleNamespace(
-                status="no_tool_call",
-                raw_message=message
-            )
-
-        return SimpleNamespace(
-            status="tool_called",
-            tool_calls=message.tool_calls
-        )
+    def run_node(self, node):
+        for attempt in range(self.max_retry + 1):
+            try:
+                resp = self.llm.chat([
+                    {"role": "system", "content": "你是一个任务执行 Agent"},
+                    {"role": "user", "content": node.task}
+                ])
+                node.result = resp
+                node.status = "done"
+                return
+            except Exception as e:
+                if attempt == self.max_retry:
+                    node.status = "failed"
+                    node.result = str(e)

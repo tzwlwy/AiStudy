@@ -10,7 +10,7 @@ class DAGPlanner:
         prompt_base = '''你是一个高级 Agent Planner。
 请把用户目标拆解为 DAG 任务。如果目标无法拆解，也要返回 JSON。
 
-⚠️ 你必须【只输出合法 JSON】，禁止任何解释性文本。
+⚠️ 你必须【只输出合法 JSON】，禁止任何解释性文本。不要包含 ```json 字样
 ⚠️ JSON 顶层必须是一个对象，且只包含一个字段：nodes
 JSON 格式如下：
 {{
@@ -48,4 +48,26 @@ JSON 格式如下：
             for n in data["nodes"]
         }
 
+        print(nodes)
+
         return DAGPlan(goal=user_goal, nodes=nodes)
+
+    def plan_from_outline(self, outline: dict) -> DAGPlan:
+        nodes = []
+
+        prev_id = None
+        for chapter in outline["chapters"]:
+            node = DAGNode(
+                id=chapter["id"],
+                type="chapter_generate",
+                description=chapter["summary"],
+                depends_on=[prev_id] if prev_id else [],
+                payload={
+                    "title": chapter["title"],
+                    "summary": chapter["summary"]
+                }
+            )
+            nodes.append(node)
+            prev_id = chapter["id"]
+
+        return DAGPlan(nodes=nodes)
